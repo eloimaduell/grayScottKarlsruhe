@@ -18,8 +18,8 @@ void ofApp::setup()
     createFullScreenQuad();
     
     // change the 4 to 2 or 1 (or 8) to adjust the scale
-    int width = ofGetWindowWidth() / 4;
-    int height = ofGetWindowHeight() / 4;
+    int width = ofGetWindowWidth() / 1;
+    int height = ofGetWindowHeight() / 1;
     
     m_grayscottShader.begin();
     m_grayscottShader.setUniform1f( "screenWidth", width );
@@ -52,7 +52,8 @@ void ofApp::setup()
     
     // init UI
     m_gui.setup();
-	m_gui.add( m_feedSlider.setup( "Feed Rate", m_parameters.feed, 0.0f, 0.1f ) );
+    m_gui.add( m_fps.set("FPS",0.0,0.0,120.0));
+    m_gui.add( m_feedSlider.setup( "Feed Rate", m_parameters.feed, 0.0f, 0.1f ) );
 	m_gui.add( m_killSlider.setup( "Death Rate", m_parameters.kill, 0.0f, 0.073f ) );
     m_gui.add( m_brushSizeSlider.setup( "Brush Size", m_parameters.brushSize, 1.0f, 500.0f ) );
     m_gui.add( m_timeSlider.setup( "Time Multiplier", m_parameters.timeMultiplier, 0.0f, 500.0f ) );
@@ -67,6 +68,8 @@ void ofApp::setup()
     m_killSlider.addListener( this, &ofApp::onKillValueChanged );
     m_brushSizeSlider.addListener( this, &ofApp::onBrushSizeValueChanged );
     m_timeSlider.addListener( this, &ofApp::onTimeValueChanged );
+    
+    image.load("test.jpg");
  }
 
 void ofApp::onFeedValueChanged( float& _value )
@@ -131,6 +134,8 @@ void ofApp::update()
     m_parameters.color3 = m_color3Slider;
     m_parameters.color4 = m_color4Slider;
     m_parameters.color5 = m_color5Slider;
+    
+    m_fps = ofGetFrameRate();
  }
 
 //--------------------------------------------------------------
@@ -153,7 +158,9 @@ void ofApp::draw()
     }
     
     m_lastTime = currTime;
-    
+    ofSetColor(ofFloatColor(1.0,1.0,1.0,0.5));
+    image.draw(0,0,1920,1080);
+
     m_grayscottShader.begin();
         m_grayscottShader.setUniform1f( "brushSize", m_parameters.brushSize );
         m_grayscottShader.setUniform2f( "brush", m_parameters.brush );
@@ -169,7 +176,7 @@ void ofApp::draw()
             m_grayscottShader.setUniformTexture( "tSource", m_fbos[ 1 - fboIndex ].getTexture(), 0 );
             
             m_fbos[ fboIndex ].begin();
-                ofClear( 0, 0, 255, 255 );
+                ofClear( 0, 0, 0, 255 );
                 m_fsQuadVbo.draw();
             m_fbos[ fboIndex ].end();
             
@@ -190,12 +197,14 @@ void ofApp::draw()
     
         m_screenShader.setUniformTexture( "tSource", m_fbos[ fboIndex ].getTexture(), 0 );
     
+    
         m_fsQuadVbo.draw();
-    m_screenShader.end();
+m_screenShader.end();
     
     glDisable( GL_CULL_FACE );
     
     m_gui.draw();
+
 }
 
 void ofApp::setDefaultParameters()

@@ -79,7 +79,11 @@ public:
 	ofxFloatColorSlider    m_color4Slider;
 	ofxFloatColorSlider    m_color5Slider;
     
+    ofParameter<float>     m_fps;
+    
 	ofxPanel          m_gui;
     
     float             m_lastTime;
+    
+    ofImage           image;
 };
