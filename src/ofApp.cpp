@@ -207,8 +207,8 @@ void ofApp::draw()
     
     glDisable( GL_CULL_FACE );
     
-//    m_fbos[ 0 ].draw( 0, 0 );
-    
+    m_fbos[ 0 ].draw( 0, 0 );
+/*
     m_screenShader.begin();
         m_screenShader.setUniform4f( "color1", m_parameters.color1.r, m_parameters.color1.g, m_parameters.color1.b, m_parameters.color1.a );
         m_screenShader.setUniform4f( "color2", m_parameters.color2.r, m_parameters.color2.g, m_parameters.color2.b, m_parameters.color2.a );
@@ -220,6 +220,7 @@ void ofApp::draw()
     
         m_fsQuadVbo.draw();
     m_screenShader.end();
+ */
     
     m_gui.draw();
 }
