@@ -65,6 +65,8 @@ public:
 	void dragEvent(ofDragInfo dragInfo);
 	void gotMessage(ofMessage msg);
     
+    bool        m_bDebugMode;
+    
     ofShader    m_grayscottShader;
     ofShader    m_screenShader;
     

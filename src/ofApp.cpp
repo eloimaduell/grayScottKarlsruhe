@@ -2,6 +2,7 @@
 
 ofApp::ofApp()
   : m_lastTime( 0.0f )
+  , m_bDebugMode( false )
 {
 }
 
@@ -207,20 +208,24 @@ void ofApp::draw()
     
     glDisable( GL_CULL_FACE );
     
-    m_fbos[ 0 ].draw( 0, 0 );
-/*
-    m_screenShader.begin();
-        m_screenShader.setUniform4f( "color1", m_parameters.color1.r, m_parameters.color1.g, m_parameters.color1.b, m_parameters.color1.a );
-        m_screenShader.setUniform4f( "color2", m_parameters.color2.r, m_parameters.color2.g, m_parameters.color2.b, m_parameters.color2.a );
-        m_screenShader.setUniform4f( "color3", m_parameters.color3.r, m_parameters.color3.g, m_parameters.color3.b, m_parameters.color3.a );
-        m_screenShader.setUniform4f( "color4", m_parameters.color4.r, m_parameters.color4.g, m_parameters.color4.b, m_parameters.color4.a );
-        m_screenShader.setUniform4f( "color5", m_parameters.color5.r, m_parameters.color5.g, m_parameters.color5.b, m_parameters.color5.a );
-    
-        m_screenShader.setUniformTexture( "tSource", m_fbos[ fboIndex ].getTexture(), 0 );
-    
-        m_fsQuadVbo.draw();
-    m_screenShader.end();
- */
+    if ( true == m_bDebugMode )
+    {
+        m_fbos[ 0 ].draw( 0, 0 );
+    }
+    else
+    {
+        m_screenShader.begin();
+            m_screenShader.setUniform4f( "color1", m_parameters.color1.r, m_parameters.color1.g, m_parameters.color1.b, m_parameters.color1.a );
+            m_screenShader.setUniform4f( "color2", m_parameters.color2.r, m_parameters.color2.g, m_parameters.color2.b, m_parameters.color2.a );
+            m_screenShader.setUniform4f( "color3", m_parameters.color3.r, m_parameters.color3.g, m_parameters.color3.b, m_parameters.color3.a );
+            m_screenShader.setUniform4f( "color4", m_parameters.color4.r, m_parameters.color4.g, m_parameters.color4.b, m_parameters.color4.a );
+            m_screenShader.setUniform4f( "color5", m_parameters.color5.r, m_parameters.color5.g, m_parameters.color5.b, m_parameters.color5.a );
+        
+            m_screenShader.setUniformTexture( "tSource", m_fbos[ fboIndex ].getTexture(), 0 );
+        
+            m_fsQuadVbo.draw();
+        m_screenShader.end();
+    }
     
     m_gui.draw();
 }
@@ -250,7 +255,12 @@ void ofApp::keyPressed(int key)
 //--------------------------------------------------------------
 void ofApp::keyReleased(int key)
 {
-    if ( 'c' == key )
+
+    if ( 'd' == key )
+    {
+        m_bDebugMode = !m_bDebugMode;
+    }
+    else if ( 'c' == key )
     {
         m_fbos[ 1 ].begin();
             ofClear( 200, 0, 0, 255 );
