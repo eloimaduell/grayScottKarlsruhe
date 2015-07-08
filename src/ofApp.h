@@ -8,6 +8,8 @@ class ofApp : public ofBaseApp{
 public:
     struct Parameters
     {
+        float    diffU;
+        float    diffV;
         float    feed;
         float    kill;
         float    brushSize;
@@ -20,7 +22,9 @@ public:
         ofFloatColor color5;
         
         Parameters()
-          : feed( 0.0f )
+          : diffU( 0.0f )
+          , diffV( 0.0f )
+          , feed( 0.0f )
           , kill( 0.0f )
           , brushSize( 0.0f )
           , brush( 0.0f )
@@ -42,6 +46,8 @@ public:
     void createFullScreenQuad();
     void setDefaultParameters();
     
+    void onDiffUValueChanged( float& _value );
+    void onDiffVValueChanged( float& _value );
     void onFeedValueChanged( float& _value );
     void onKillValueChanged( float& _value );
     void onBrushSizeValueChanged( float& _value );
@@ -68,6 +74,8 @@ public:
     
     Parameters  m_parameters;
     
+   	ofxFloatSlider    m_diffUSlider;
+   	ofxFloatSlider    m_diffVSlider;
    	ofxFloatSlider    m_feedSlider;
    	ofxFloatSlider    m_killSlider;
    	ofxFloatSlider    m_brushSizeSlider;
@@ -85,5 +93,6 @@ public:
     
     float             m_lastTime;
     
-    ofImage           image;
+    ofImage           m_starterImage;
+    ofImage           m_obstacleImage;
 };

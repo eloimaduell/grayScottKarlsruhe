@@ -18,8 +18,8 @@ void ofApp::setup()
     createFullScreenQuad();
     
     // change the 4 to 2 or 1 (or 8) to adjust the scale
-    int width = ofGetWindowWidth() / 1;
-    int height = ofGetWindowHeight() / 1;
+    int width = ofGetWindowWidth();
+    int height = ofGetWindowHeight();
     
     m_grayscottShader.begin();
     m_grayscottShader.setUniform1f( "screenWidth", width );
@@ -53,9 +53,11 @@ void ofApp::setup()
     // init UI
     m_gui.setup();
     m_gui.add( m_fps.set("FPS",0.0,0.0,120.0));
+    m_gui.add( m_diffUSlider.setup( "Diffusion U", m_parameters.diffU, 0.0f, 1.0f ) );
+    m_gui.add( m_diffVSlider.setup( "Diffustion V", m_parameters.diffV, 0.0f, 1.0f ) );
     m_gui.add( m_feedSlider.setup( "Feed Rate", m_parameters.feed, 0.0f, 0.1f ) );
 	m_gui.add( m_killSlider.setup( "Death Rate", m_parameters.kill, 0.0f, 0.073f ) );
-    m_gui.add( m_brushSizeSlider.setup( "Brush Size", m_parameters.brushSize, 1.0f, 500.0f ) );
+    m_gui.add( m_brushSizeSlider.setup( "Brush Size", m_parameters.brushSize, 1.0f, 20.0f ) );
     m_gui.add( m_timeSlider.setup( "Time Multiplier", m_parameters.timeMultiplier, 0.0f, 500.0f ) );
     
     m_gui.add( m_color1Slider.setup( "Color 1", m_parameters.color1, ofFloatColor( 0.0f, 0.0f, 0.0f, 0.0f ), ofFloatColor( 1.0f, 1.0f, 1.0f, 1.0f ) ) );
@@ -64,13 +66,35 @@ void ofApp::setup()
     m_gui.add( m_color4Slider.setup( "Color 4", m_parameters.color4, ofFloatColor( 0.0f, 0.0f, 0.0f, 0.0f ), ofFloatColor( 1.0f, 1.0f, 1.0f, 1.0f ) ) );
     m_gui.add( m_color5Slider.setup( "Color 5", m_parameters.color5, ofFloatColor( 0.0f, 0.0f, 0.0f, 0.0f ), ofFloatColor( 1.0f, 1.0f, 1.0f, 1.0f ) ) );
     
+    m_diffUSlider.addListener( this, &ofApp::onDiffUValueChanged );
+    m_diffVSlider.addListener( this, &ofApp::onDiffVValueChanged );
     m_feedSlider.addListener( this, &ofApp::onFeedValueChanged );
     m_killSlider.addListener( this, &ofApp::onKillValueChanged );
     m_brushSizeSlider.addListener( this, &ofApp::onBrushSizeValueChanged );
     m_timeSlider.addListener( this, &ofApp::onTimeValueChanged );
     
-    image.load("test.jpg");
- }
+    m_obstacleImage.load( "starter.jpg" );
+    m_starterImage.load( "testSimple_16bits.png" );
+    
+    
+    m_fbos[ 0 ].begin();
+        ofClear( 255, 0, 0, 255 );
+    m_fbos[ 0 ].end();
+    
+    m_fbos[ 1 ].begin();
+        ofClear( 255, 0, 0, 255 );
+    m_fbos[ 1 ].end();
+}
+
+void ofApp::onDiffUValueChanged( float& _value )
+{
+    m_parameters.diffU = _value;
+}
+
+void ofApp::onDiffVValueChanged( float& _value )
+{
+    m_parameters.diffV = _value;
+}
 
 void ofApp::onFeedValueChanged( float& _value )
 {
@@ -158,16 +182,15 @@ void ofApp::draw()
     }
     
     m_lastTime = currTime;
-    ofSetColor(ofFloatColor(1.0,1.0,1.0,0.5));
-    image.draw(0,0,1920,1080);
-
-    m_grayscottShader.begin();
-        m_grayscottShader.setUniform1f( "brushSize", m_parameters.brushSize );
-        m_grayscottShader.setUniform2f( "brush", m_parameters.brush );
     
+    m_grayscottShader.begin();
+        m_grayscottShader.setUniform1f( "diffU", m_parameters.diffU );
+        m_grayscottShader.setUniform1f( "diffV", m_parameters.diffV );
         m_grayscottShader.setUniform1f( "feed", m_parameters.feed );
         m_grayscottShader.setUniform1f( "kill", m_parameters.kill );
         m_grayscottShader.setUniform1f( "delta", dt );
+    
+        m_grayscottShader.setUniformTexture( "tInfluence", m_obstacleImage.getTexture(), 1 );
     
         int fboIndex = 0;
         for ( int i = 0; i < 8; ++ i )
@@ -176,12 +199,9 @@ void ofApp::draw()
             m_grayscottShader.setUniformTexture( "tSource", m_fbos[ 1 - fboIndex ].getTexture(), 0 );
             
             m_fbos[ fboIndex ].begin();
-                ofClear( 0, 0, 0, 255 );
+                ofClear( 255, 0, 0, 255 );
                 m_fsQuadVbo.draw();
             m_fbos[ fboIndex ].end();
-            
-            m_parameters.brush.set( -1.0f, -1.0f );
-            m_grayscottShader.setUniform2f( "brush", m_parameters.brush );
         }
     m_grayscottShader.end();
     
@@ -197,18 +217,20 @@ void ofApp::draw()
     
         m_screenShader.setUniformTexture( "tSource", m_fbos[ fboIndex ].getTexture(), 0 );
     
-    
         m_fsQuadVbo.draw();
-m_screenShader.end();
+    m_screenShader.end();
     
     glDisable( GL_CULL_FACE );
     
-    m_gui.draw();
+//    m_influenceImage.draw(0,0);
 
+    m_gui.draw();
 }
 
 void ofApp::setDefaultParameters()
 {
+    m_parameters.diffU = 0.2097f;
+    m_parameters.diffV = 0.1050f;
     m_parameters.feed = 0.037f;
     m_parameters.kill = 0.06f;
     m_parameters.timeMultiplier = 20.0f;
@@ -230,7 +252,15 @@ void ofApp::keyPressed(int key)
 //--------------------------------------------------------------
 void ofApp::keyReleased(int key)
 {
-
+    m_fbos[ 1 ].begin();
+        ofClear( 200, 0, 0, 255 );
+        ofSetColor( 0, 225, 0, 255 );
+    
+        ofEnableBlendMode( OF_BLENDMODE_ADD );
+        m_starterImage.draw( 0, 0, 1920, 1080 );
+    
+        ofDisableBlendMode();
+    m_fbos[ 1 ].end();
 }
 
 //--------------------------------------------------------------
@@ -241,13 +271,23 @@ void ofApp::mouseMoved(int x, int y )
 //--------------------------------------------------------------
 void ofApp::mouseDragged(int x, int y, int button)
 {
-    m_parameters.brush.set( (float)x / (float)ofGetWidth(), (float)y / (float)ofGetHeight() );
+    m_parameters.brush.set( x, y );
+    
+    m_fbos[ 1 ].begin();
+        ofSetColor( 0, 225, 0, 255 );
+        ofDrawCircle( m_parameters.brush.x, m_parameters.brush.y, 10 );
+    m_fbos[ 1 ].end();
 }
 
 //--------------------------------------------------------------
 void ofApp::mousePressed(int x, int y, int button)
 {
-    m_parameters.brush.set( (float)x / (float)ofGetWidth(), (float)y / (float)ofGetHeight() );
+    m_parameters.brush.set( x, y );
+    
+    m_fbos[ 1 ].begin();
+        ofSetColor( 0, 225, 0, 255 );
+        ofDrawCircle( m_parameters.brush.x, m_parameters.brush.y, m_parameters.brushSize );
+    m_fbos[ 1 ].end();
 }
 
 //--------------------------------------------------------------
