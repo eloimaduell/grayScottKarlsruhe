@@ -10,9 +10,6 @@ uniform float screenHeight;
 
 uniform sampler2D tSource;
 
-uniform float delta;
-uniform float feed;
-uniform float kill;
 uniform vec4 color1;
 uniform vec4 color2;
 uniform vec4 color3;
@@ -23,11 +20,11 @@ out vec4 out_color;
 
 void main()
 {
-    vec2 texel = vec2(1.0/screenWidth, 1.0/screenHeight);
-    float value = texture(tSource, vertex_out.uv).g;
+    vec2 uv = vertex_out.uv;
+    uv.y = 1.0 - uv.y;
+    
+    float value = texture(tSource, uv).g;
 
-    //int step = int(floor(value));
-    //float a = fract(value);
     float a;
     vec3 col;
 

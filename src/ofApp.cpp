@@ -139,10 +139,10 @@ void ofApp::createFullScreenQuad()
     // ofDisableArbTex() was called earlier set that we're using normalized texture coordinates
     ofVec2f texCoords[4] =
     {
-        ofVec2f( 1.0f, 0.0f ),
-        ofVec2f( 0.0f, 0.0f ),
         ofVec2f( 1.0f, 1.0f ),
-        ofVec2f( 0.0f, 1.0f )
+        ofVec2f( 0.0f, 1.0f ),
+        ofVec2f( 1.0f, 0.0f ),
+        ofVec2f( 0.0f, 0.0f )
     };
     
     m_fsQuadVbo.addVertices( vertices, 4 );
@@ -205,10 +205,11 @@ void ofApp::draw()
         }
     m_grayscottShader.end();
     
+    glDisable( GL_CULL_FACE );
+    
+//    m_fbos[ 0 ].draw( 0, 0 );
+    
     m_screenShader.begin();
-        m_screenShader.setUniform1f( "feed", m_parameters.feed );
-        m_screenShader.setUniform1f( "kill", m_parameters.kill );
-        m_screenShader.setUniform1f( "delta", dt );
         m_screenShader.setUniform4f( "color1", m_parameters.color1.r, m_parameters.color1.g, m_parameters.color1.b, m_parameters.color1.a );
         m_screenShader.setUniform4f( "color2", m_parameters.color2.r, m_parameters.color2.g, m_parameters.color2.b, m_parameters.color2.a );
         m_screenShader.setUniform4f( "color3", m_parameters.color3.r, m_parameters.color3.g, m_parameters.color3.b, m_parameters.color3.a );
@@ -220,10 +221,6 @@ void ofApp::draw()
         m_fsQuadVbo.draw();
     m_screenShader.end();
     
-    glDisable( GL_CULL_FACE );
-    
-//    m_influenceImage.draw(0,0);
-
     m_gui.draw();
 }
 
@@ -252,15 +249,27 @@ void ofApp::keyPressed(int key)
 //--------------------------------------------------------------
 void ofApp::keyReleased(int key)
 {
-    m_fbos[ 1 ].begin();
-        ofClear( 200, 0, 0, 255 );
-        ofSetColor( 0, 225, 0, 255 );
-    
-        ofEnableBlendMode( OF_BLENDMODE_ADD );
-        m_starterImage.draw( 0, 0, 1920, 1080 );
-    
-        ofDisableBlendMode();
-    m_fbos[ 1 ].end();
+    if ( 'c' == key )
+    {
+        m_fbos[ 1 ].begin();
+            ofClear( 200, 0, 0, 255 );
+            ofSetColor( 0, 225, 0, 255 );
+        
+            ofDisableBlendMode();
+        m_fbos[ 1 ].end();
+    }
+    else if ( ' ' == key )
+    {
+        m_fbos[ 1 ].begin();
+            ofClear( 200, 0, 0, 255 );
+            ofSetColor( 0, 225, 0, 255 );
+        
+            ofEnableBlendMode( OF_BLENDMODE_ADD );
+            m_starterImage.draw( 0, 0, 1920, 1080 );
+        
+            ofDisableBlendMode();
+        m_fbos[ 1 ].end();
+    }
 }
 
 //--------------------------------------------------------------
@@ -274,8 +283,17 @@ void ofApp::mouseDragged(int x, int y, int button)
     m_parameters.brush.set( x, y );
     
     m_fbos[ 1 ].begin();
-        ofSetColor( 0, 225, 0, 255 );
-        ofDrawCircle( m_parameters.brush.x, m_parameters.brush.y, 10 );
+    
+        if ( 0 == button )
+        {
+            ofSetColor( 0, 255, 0, 255 );
+        }
+        else if ( 2 == button )
+        {
+            ofSetColor( 255, 0, 0, 255 );
+        }
+    
+        ofDrawCircle( m_parameters.brush.x, m_parameters.brush.y, m_parameters.brushSize );
     m_fbos[ 1 ].end();
 }
 
@@ -285,7 +303,16 @@ void ofApp::mousePressed(int x, int y, int button)
     m_parameters.brush.set( x, y );
     
     m_fbos[ 1 ].begin();
-        ofSetColor( 0, 225, 0, 255 );
+    
+        if ( 0 == button )
+        {
+            ofSetColor( 0, 255, 0, 255 );
+        }
+        else if ( 2 == button )
+        {
+            ofSetColor( 255, 0, 0, 255 );
+        }
+    
         ofDrawCircle( m_parameters.brush.x, m_parameters.brush.y, m_parameters.brushSize );
     m_fbos[ 1 ].end();
 }
