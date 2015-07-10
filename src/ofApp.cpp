@@ -43,8 +43,8 @@ void ofApp::setup()
     fboSettings.textureTarget = GL_TEXTURE_2D;
     fboSettings.minFilter = GL_LINEAR;
     fboSettings.maxFilter = GL_LINEAR;
-    fboSettings.wrapModeHorizontal = GL_REPEAT;
-    fboSettings.wrapModeVertical = GL_REPEAT;
+    fboSettings.wrapModeHorizontal = GL_CLAMP_TO_EDGE;
+    fboSettings.wrapModeVertical = GL_CLAMP_TO_EDGE;
 
     // create our FBOs
     m_fbos[ 0 ].allocate( fboSettings );
@@ -59,13 +59,18 @@ void ofApp::setup()
     m_gui.add( m_feedSlider.setup( "Feed Rate", m_parameters.feed, 0.0f, 0.1f ) );
 	m_gui.add( m_killSlider.setup( "Death Rate", m_parameters.kill, 0.0f, 0.073f ) );
     m_gui.add( m_brushSizeSlider.setup( "Brush Size", m_parameters.brushSize, 1.0f, 20.0f ) );
-    m_gui.add( m_timeSlider.setup( "Time Multiplier", m_parameters.timeMultiplier, 0.0f, 500.0f ) );
+    m_gui.add( m_timeSlider.setup( "Time Multiplier", m_parameters.timeMultiplier, 0.0f, 60.0 ) );
     
     m_gui.add( m_color1Slider.setup( "Color 1", m_parameters.color1, ofFloatColor( 0.0f, 0.0f, 0.0f, 0.0f ), ofFloatColor( 1.0f, 1.0f, 1.0f, 1.0f ) ) );
     m_gui.add( m_color2Slider.setup( "Color 2", m_parameters.color2, ofFloatColor( 0.0f, 0.0f, 0.0f, 0.0f ), ofFloatColor( 1.0f, 1.0f, 1.0f, 1.0f ) ) );
     m_gui.add( m_color3Slider.setup( "Color 3", m_parameters.color3, ofFloatColor( 0.0f, 0.0f, 0.0f, 0.0f ), ofFloatColor( 1.0f, 1.0f, 1.0f, 1.0f ) ) );
     m_gui.add( m_color4Slider.setup( "Color 4", m_parameters.color4, ofFloatColor( 0.0f, 0.0f, 0.0f, 0.0f ), ofFloatColor( 1.0f, 1.0f, 1.0f, 1.0f ) ) );
     m_gui.add( m_color5Slider.setup( "Color 5", m_parameters.color5, ofFloatColor( 0.0f, 0.0f, 0.0f, 0.0f ), ofFloatColor( 1.0f, 1.0f, 1.0f, 1.0f ) ) );
+    
+    m_gui.setSize(600, 600);
+    m_gui.setWidthElements(600);
+    m_gui.loadFromFile("settings.xml");
+    m_showGUI = true;
     
     m_diffUSlider.addListener( this, &ofApp::onDiffUValueChanged );
     m_diffVSlider.addListener( this, &ofApp::onDiffVValueChanged );
@@ -74,8 +79,8 @@ void ofApp::setup()
     m_brushSizeSlider.addListener( this, &ofApp::onBrushSizeValueChanged );
     m_timeSlider.addListener( this, &ofApp::onTimeValueChanged );
     
-    m_obstacleImage.load( "starter.jpg" );
-    m_starterImage.load( "testSimple_16bits.png" );
+    m_obstacleImage.load( "K07inv.png" );
+    m_starterImage.load( "K07_starter.png" );
     
     
     m_fbos[ 0 ].begin();
@@ -85,38 +90,84 @@ void ofApp::setup()
     m_fbos[ 1 ].begin();
         ofClear( 255, 0, 0, 255 );
     m_fbos[ 1 ].end();
+    
+    // Syphon
+
+    m_showSyphon = false;
+    m_useSyphonAsObstacle = true;
+    m_syphonClient.setup();
+    m_syphonClient.set("Composition","Arena");
+
+    ofFbo::Settings syphonFboSettings;
+    syphonFboSettings.width = width;
+    syphonFboSettings.height = height;
+    syphonFboSettings.internalformat = GL_RGBA;
+    syphonFboSettings.numSamples = 1;
+    syphonFboSettings.useDepth = false;
+    syphonFboSettings.useStencil = false;
+    syphonFboSettings.textureTarget = GL_TEXTURE_2D;
+    syphonFboSettings.minFilter = GL_LINEAR;
+    syphonFboSettings.maxFilter = GL_LINEAR;
+    syphonFboSettings.wrapModeHorizontal = GL_CLAMP_TO_EDGE;
+    syphonFboSettings.wrapModeVertical = GL_CLAMP_TO_EDGE;
+
+    m_syphonFbo.allocate( fboSettings );
+    
+    // Final Render FBO
+    ofFbo::Settings renderFboSettings;
+    renderFboSettings.width = width;
+    renderFboSettings.height = height;
+    renderFboSettings.internalformat = GL_RGBA;
+    renderFboSettings.numSamples = 1;
+    renderFboSettings.useDepth = false;
+    renderFboSettings.useStencil = false;
+    renderFboSettings.textureTarget = GL_TEXTURE_2D;
+    renderFboSettings.minFilter = GL_LINEAR;
+    renderFboSettings.maxFilter = GL_LINEAR;
+    renderFboSettings.wrapModeHorizontal = GL_CLAMP_TO_EDGE;
+    renderFboSettings.wrapModeVertical = GL_CLAMP_TO_EDGE;
+    
+    m_renderFbo.allocate(renderFboSettings);
+      
 }
 
+//--------------------------------------------------------------
 void ofApp::onDiffUValueChanged( float& _value )
 {
     m_parameters.diffU = _value;
 }
 
+//--------------------------------------------------------------
 void ofApp::onDiffVValueChanged( float& _value )
 {
     m_parameters.diffV = _value;
 }
 
+//--------------------------------------------------------------
 void ofApp::onFeedValueChanged( float& _value )
 {
     m_parameters.feed = _value;
 }
 
+//--------------------------------------------------------------
 void ofApp::onKillValueChanged( float& _value )
 {
     m_parameters.kill = _value;
 }
 
+//--------------------------------------------------------------
 void ofApp::onBrushSizeValueChanged( float& _value )
 {
     m_parameters.brushSize = _value;
 }
 
+//--------------------------------------------------------------
 void ofApp::onTimeValueChanged( float& _value )
 {
     m_parameters.timeMultiplier = _value;
 }
 
+//--------------------------------------------------------------
 void ofApp::createFullScreenQuad()
 {
     // -1.0 to +1.0 is the full viewport (screen) if you use these as vertices in your vertex shader
@@ -168,6 +219,16 @@ void ofApp::draw()
 {
     ofClear( 0, 255, 0, 255 );
     
+    ofDisableDepthTest();
+    
+    // Draw into Syphon FBO
+    m_syphonFbo.begin();
+        ofClear( 0, 0, 0, 255 );
+        ofSetColor( 255, 255, 255, 255 );
+        m_syphonClient.draw( 0, 0 );
+    m_syphonFbo.end();
+
+    // Draw GrayScott
     glEnable( GL_CULL_FACE );
     glCullFace( GL_BACK );
  
@@ -177,9 +238,9 @@ void ofApp::draw()
     float currTime = ofGetElapsedTimef();
     float dt = ( currTime - m_lastTime ) * m_parameters.timeMultiplier;
     
-    if ( dt > 0.85f || dt <= 0.0f )
+    if ( dt > 1.01f || dt <= 0.0f )
     {
-        dt = 0.85f;
+        dt = 1.01f;
     }
     
     m_lastTime = currTime;
@@ -191,8 +252,14 @@ void ofApp::draw()
         m_grayscottShader.setUniform1f( "kill", m_parameters.kill );
         m_grayscottShader.setUniform1f( "delta", dt );
     
-        m_grayscottShader.setUniformTexture( "tInfluence", m_obstacleImage.getTexture(), 1 );
-    
+        if(true == m_useSyphonAsObstacle)
+        {
+            m_grayscottShader.setUniformTexture( "tInfluence", m_syphonFbo.getTexture(),1 );
+        }
+        else
+        {
+            m_grayscottShader.setUniformTexture( "tInfluence", m_obstacleImage.getTexture(), 1 );
+        }
         int fboIndex = 0;
         for ( int i = 0; i < 8; ++ i )
         {
@@ -208,28 +275,50 @@ void ofApp::draw()
     
     glDisable( GL_CULL_FACE );
     
-    if ( true == m_bDebugMode )
+    // Final Render
+    ////////////////
+    
+    m_renderFbo.begin();
     {
-        m_fbos[ 0 ].draw( 0, 0 );
-    }
-    else
-    {
-        m_screenShader.begin();
+        ofClear(255,0,0,255);
+        ofSetColor(255);
+        ofEllipse(940, 540, 200, 200);
+
+        if ( true == m_bDebugMode )
+        {
+            m_fbos[ 0 ].draw( 0, 0 );
+        }
+        else
+        {
+            m_screenShader.begin();
             m_screenShader.setUniform4f( "color1", m_parameters.color1.r, m_parameters.color1.g, m_parameters.color1.b, m_parameters.color1.a );
             m_screenShader.setUniform4f( "color2", m_parameters.color2.r, m_parameters.color2.g, m_parameters.color2.b, m_parameters.color2.a );
             m_screenShader.setUniform4f( "color3", m_parameters.color3.r, m_parameters.color3.g, m_parameters.color3.b, m_parameters.color3.a );
             m_screenShader.setUniform4f( "color4", m_parameters.color4.r, m_parameters.color4.g, m_parameters.color4.b, m_parameters.color4.a );
             m_screenShader.setUniform4f( "color5", m_parameters.color5.r, m_parameters.color5.g, m_parameters.color5.b, m_parameters.color5.a );
-        
+            
             m_screenShader.setUniformTexture( "tSource", m_fbos[ fboIndex ].getTexture(), 0 );
-        
+            
             m_fsQuadVbo.draw();
-        m_screenShader.end();
+            m_screenShader.end();
+        }
     }
     
-    m_gui.draw();
+    ofSetColor(255,255,0);
+    ofEllipse(940, 540, 100, 100);
+
+    m_renderFbo.end();
+    
+    ofSetColor(ofColor::white);
+    m_renderFbo.draw(0,0,192,108);
+    
+    if(m_showGUI) m_gui.draw();
+    
+    if(m_showSyphon) m_syphonClient.draw(0,0);//,m_syphonClient.getWidth()/10.0,m_syphonClient.getHeight()/10.0);
+
 }
 
+//--------------------------------------------------------------
 void ofApp::setDefaultParameters()
 {
     m_parameters.diffU = 0.2097f;
@@ -281,6 +370,60 @@ void ofApp::keyReleased(int key)
             ofDisableBlendMode();
         m_fbos[ 1 ].end();
     }
+    else if (key == 'h')
+    {
+        m_showGUI = !m_showGUI;
+    }
+    else if (key == 's')
+    {
+        m_showSyphon = !m_showSyphon;
+    }
+    else if (key == 'u')
+    {
+        m_useSyphonAsObstacle = !m_useSyphonAsObstacle;
+    }
+    // 0 save and load
+    else if (key == '0')
+    {
+        m_gui.loadFromFile("settings.xml");
+    }
+    else if (key == '=')
+    {
+        m_gui.saveToFile("settings.xml");
+    }
+    // 1 save and load
+    //------------------
+    else if (key == '1')
+    {
+            m_gui.loadFromFile("settings1.xml");
+    }
+    else if (key == '!')
+    {
+        m_gui.saveToFile("settings1.xml");
+    }
+
+    // 2 save and load
+    //------------------
+    else if (key == '2')
+    {
+        m_gui.loadFromFile("settings2.xml");
+    }
+    else if (key == '"')
+    {
+        m_gui.saveToFile("settings2.xml");
+    }
+
+    // 3 save and load
+    //------------------
+    else if (key == '3')
+    {
+        m_gui.loadFromFile("settings3.xml");
+    }
+    else if (key == 'á')
+    {
+        m_gui.saveToFile("settings3.xml");
+    }
+
 }
 
 //--------------------------------------------------------------

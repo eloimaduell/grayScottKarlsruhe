@@ -3,6 +3,18 @@
 #include "ofMain.h"
 #include "ofxGui.h"
 
+#include "ofxSyphon.h"
+
+/*
+// TO DO
+ 
+ * avoid texture wrap/repeat vertically and horizontally
+ - save / load different presets : keys 1..0 shif keys 1..0
+ - osc to params
+ - syphon/movie as input texture
+ 
+ */
+
 class ofApp : public ofBaseApp{
 
 public:
@@ -74,6 +86,9 @@ public:
     
     ofFbo       m_fbos[2]; // ping pong fbos
     
+    ofFbo       m_renderFbo; // final render fbo
+    ofVec2f     m_renderSize;
+    
     Parameters  m_parameters;
     
    	ofxFloatSlider    m_diffUSlider;
@@ -92,9 +107,18 @@ public:
     ofParameter<float>     m_fps;
     
 	ofxPanel          m_gui;
+    bool              m_showGUI;
     
     float             m_lastTime;
     
     ofImage           m_starterImage;
     ofImage           m_obstacleImage;
+    
+    // Syphon
+    bool                m_showSyphon;
+    bool                m_useSyphonAsObstacle;
+    ofxSyphonClient     m_syphonClient;
+    ofFbo               m_syphonFbo;
+    
+    
 };
