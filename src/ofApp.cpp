@@ -92,7 +92,6 @@ void ofApp::setup()
     m_fbos[ 1 ].end();
     
     // Syphon
-
     m_showSyphon = false;
     m_useSyphonAsObstacle = true;
     m_syphonClient.setup();
@@ -282,7 +281,7 @@ void ofApp::draw()
     {
         ofClear(255,0,0,255);
         ofSetColor(255);
-        ofEllipse(940, 540, 200, 200);
+        ofDrawEllipse(940, 540, 200, 200);
 
         if ( true == m_bDebugMode )
         {
@@ -305,7 +304,7 @@ void ofApp::draw()
     }
     
     ofSetColor(255,255,0);
-    ofEllipse(940, 540, 100, 100);
+    ofDrawEllipse(940, 540, 100, 100);
 
     m_renderFbo.end();
     
