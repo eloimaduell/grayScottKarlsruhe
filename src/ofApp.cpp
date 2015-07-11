@@ -12,15 +12,18 @@ void ofApp::setup()
     // Use GL_TEXTURE_2D Textures (normalized texture coordinates 0..1)
     ofDisableArbTex();
     
-    m_grayscottShader.load( "shaders/passthrough.vert", "shaders/grayscott.frag" );
-    m_screenShader.load( "shaders/passthrough.vert", "shaders/screen.frag" );
-    
-    setDefaultParameters();
-    createFullScreenQuad();
-    
+    /// Shaders and quad mesh
+    ///-------------------------
     // change the 4 to 2 or 1 (or 8) to adjust the scale
     int width = ofGetWindowWidth();
     int height = ofGetWindowHeight();
+
+    setDefaultParameters();
+    createFullScreenQuad();
+
+    m_grayscottShader.load( "shaders/passthrough.vert", "shaders/grayscott.frag" );
+    m_screenShader.load( "shaders/passthrough.vert", "shaders/screen.frag" );
+
     
     m_grayscottShader.begin();
     m_grayscottShader.setUniform1f( "screenWidth", width );
@@ -32,6 +35,8 @@ void ofApp::setup()
     m_screenShader.setUniform1f( "screenHeight", height );
     m_screenShader.end();
   
+    /// Shader FBOs
+    ///-------------------------
     
     ofFbo::Settings fboSettings;
     fboSettings.width = width;
@@ -50,8 +55,19 @@ void ofApp::setup()
     m_fbos[ 0 ].allocate( fboSettings );
     m_fbos[ 1 ].allocate( fboSettings );
     
+    // setup FBOs
+    m_fbos[ 0 ].begin();
+    ofClear( 255, 0, 0, 255 );
+    m_fbos[ 0 ].end();
     
-    // init UI
+    m_fbos[ 1 ].begin();
+    ofClear( 255, 0, 0, 255 );
+    m_fbos[ 1 ].end();
+
+    
+    /// GUI
+    ///-------------------------
+
     m_gui.setup();
     m_gui.add( m_fps.set("FPS",0.0,0.0,120.0));
     m_gui.add( m_diffUSlider.setup( "Diffusion U", m_parameters.diffU, 0.0f, 1.0f ) );
@@ -79,20 +95,15 @@ void ofApp::setup()
     m_brushSizeSlider.addListener( this, &ofApp::onBrushSizeValueChanged );
     m_timeSlider.addListener( this, &ofApp::onTimeValueChanged );
     
-    // load images
+    
+    /// Images
+    ///-------------------------
     m_obstacleImage.load( "K07inv.png" );
     m_starterImage.load( "K07_starter.png" );
     
-    // setup FBOs
-    m_fbos[ 0 ].begin();
-        ofClear( 255, 0, 0, 255 );
-    m_fbos[ 0 ].end();
     
-    m_fbos[ 1 ].begin();
-        ofClear( 255, 0, 0, 255 );
-    m_fbos[ 1 ].end();
-    
-    // Syphon
+    /// Syphon
+    ///-------------------------
     m_showSyphon = false;
     m_useSyphonAsObstacle = true;
     m_syphonClient.setup();
@@ -113,7 +124,8 @@ void ofApp::setup()
 
     m_syphonFbo.allocate( fboSettings );
     
-    // Final Render FBO
+    /// Final Render FBO
+    ///-------------------------
     ofFbo::Settings renderFboSettings;
     renderFboSettings.width = width;
     renderFboSettings.height = height;
@@ -128,79 +140,14 @@ void ofApp::setup()
     renderFboSettings.wrapModeVertical = GL_CLAMP_TO_EDGE;
     
     m_renderFbo.allocate(renderFboSettings);
-      
-}
-
-//--------------------------------------------------------------
-void ofApp::onDiffUValueChanged( float& _value )
-{
-    m_parameters.diffU = _value;
-}
-
-//--------------------------------------------------------------
-void ofApp::onDiffVValueChanged( float& _value )
-{
-    m_parameters.diffV = _value;
-}
-
-//--------------------------------------------------------------
-void ofApp::onFeedValueChanged( float& _value )
-{
-    m_parameters.feed = _value;
-}
-
-//--------------------------------------------------------------
-void ofApp::onKillValueChanged( float& _value )
-{
-    m_parameters.kill = _value;
-}
-
-//--------------------------------------------------------------
-void ofApp::onBrushSizeValueChanged( float& _value )
-{
-    m_parameters.brushSize = _value;
-}
-
-//--------------------------------------------------------------
-void ofApp::onTimeValueChanged( float& _value )
-{
-    m_parameters.timeMultiplier = _value;
-}
-
-//--------------------------------------------------------------
-void ofApp::createFullScreenQuad()
-{
-    // -1.0 to +1.0 is the full viewport (screen) if you use these as vertices in your vertex shader
-    // (without multiplying by model, view, and projection matrices)
-
-    ofVec3f vertices[4] =
-    {
-        ofVec3f(  1.0f,  1.0f, 0.0f ),
-        ofVec3f( -1.0f,  1.0f, 0.0f ),
-        ofVec3f(  1.0f, -1.0f, 0.0f ),
-        ofVec3f( -1.0f, -1.0f, 0.0f )
-    };
     
-    ofIndexType indices[6] =
-    {
-        0, 1, 2,
-        2, 1, 3
-    };
     
-    // Texture coordinates vary from 0.0 to 1.0 when they are in normalized format
-    // ofDisableArbTex() was called earlier set that we're using normalized texture coordinates
-    ofVec2f texCoords[4] =
-    {
-        ofVec2f( 1.0f, 1.0f ),
-        ofVec2f( 0.0f, 1.0f ),
-        ofVec2f( 1.0f, 0.0f ),
-        ofVec2f( 0.0f, 0.0f )
-    };
+    /// OSC Receiver
+    ///-----------------
+    m_oscReceiver.setup(12345);
     
-    m_fsQuadVbo.addVertices( vertices, 4 );
-    m_fsQuadVbo.addTexCoords( texCoords, 4 );
-    m_fsQuadVbo.addIndices( indices, 6 );
 }
+
 
 //--------------------------------------------------------------
 void ofApp::update()
@@ -212,6 +159,8 @@ void ofApp::update()
     m_parameters.color5 = m_color5Slider;
     
     m_fps = ofGetFrameRate();
+    
+    updateOSC();
  }
 
 //--------------------------------------------------------------
@@ -284,7 +233,7 @@ void ofApp::draw()
     /// Final Render
     ////////////////
     
-    //m_renderFbo.begin();
+    m_renderFbo.begin();
     {
         ofClear(255,0,0,255);
         ofSetColor(255);
@@ -312,8 +261,7 @@ void ofApp::draw()
         ofDrawEllipse(940, 540, 100, 100);
 
     }
-    //m_renderFbo.end();
-    
+    m_renderFbo.end();
     
     /// Draw To Screen
     ////////////////////
@@ -517,4 +465,84 @@ void ofApp::gotMessage(ofMessage msg)
 void ofApp::dragEvent(ofDragInfo dragInfo)
 {
 
+}
+//--------------------------------------------------------------
+void ofApp::onDiffUValueChanged( float& _value )
+{
+    m_parameters.diffU = _value;
+}
+
+//--------------------------------------------------------------
+void ofApp::onDiffVValueChanged( float& _value )
+{
+    m_parameters.diffV = _value;
+}
+
+//--------------------------------------------------------------
+void ofApp::onFeedValueChanged( float& _value )
+{
+    m_parameters.feed = _value;
+}
+
+//--------------------------------------------------------------
+void ofApp::onKillValueChanged( float& _value )
+{
+    m_parameters.kill = _value;
+}
+
+//--------------------------------------------------------------
+void ofApp::onBrushSizeValueChanged( float& _value )
+{
+    m_parameters.brushSize = _value;
+}
+
+//--------------------------------------------------------------
+void ofApp::onTimeValueChanged( float& _value )
+{
+    m_parameters.timeMultiplier = _value;
+}
+
+//--------------------------------------------------------------
+void ofApp::createFullScreenQuad()
+{
+    // -1.0 to +1.0 is the full viewport (screen) if you use these as vertices in your vertex shader
+    // (without multiplying by model, view, and projection matrices)
+    
+    ofVec3f vertices[4] =
+    {
+        ofVec3f(  1.0f,  1.0f, 0.0f ),
+        ofVec3f( -1.0f,  1.0f, 0.0f ),
+        ofVec3f(  1.0f, -1.0f, 0.0f ),
+        ofVec3f( -1.0f, -1.0f, 0.0f )
+    };
+    
+    ofIndexType indices[6] =
+    {
+        0, 1, 2,
+        2, 1, 3
+    };
+    
+    // Texture coordinates vary from 0.0 to 1.0 when they are in normalized format
+    // ofDisableArbTex() was called earlier set that we're using normalized texture coordinates
+    ofVec2f texCoords[4] =
+    {
+        ofVec2f( 1.0f, 1.0f ),
+        ofVec2f( 0.0f, 1.0f ),
+        ofVec2f( 1.0f, 0.0f ),
+        ofVec2f( 0.0f, 0.0f )
+    };
+    
+    m_fsQuadVbo.addVertices( vertices, 4 );
+    m_fsQuadVbo.addTexCoords( texCoords, 4 );
+    m_fsQuadVbo.addIndices( indices, 6 );
+}
+
+//--------------------------------------------------------------
+void ofApp::updateOSC()
+{
+    while(m_oscReceiver.hasWaitingMessages())
+    {
+        ofxOscMessage* m;
+        m_oscReceiver.getNextMessage(m);
+    }
 }

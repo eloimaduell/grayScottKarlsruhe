@@ -4,6 +4,7 @@
 #include "ofxGui.h"
 
 #include "ofxSyphon.h"
+#include "ofxOsc.h"
 
 /*
 // TO DO
@@ -18,6 +19,7 @@
 class ofApp : public ofBaseApp{
 
 public:
+    
     struct Parameters
     {
         float    diffU;
@@ -54,17 +56,6 @@ public:
  	void setup();
 	void update();
 	void draw();
-    
-    void createFullScreenQuad();
-    void setDefaultParameters();
-    
-    void onDiffUValueChanged( float& _value );
-    void onDiffVValueChanged( float& _value );
-    void onFeedValueChanged( float& _value );
-    void onKillValueChanged( float& _value );
-    void onBrushSizeValueChanged( float& _value );
-    void onTimeValueChanged( float& _value );
-    
 	void keyPressed(int key);
 	void keyReleased(int key);
 	void mouseMoved(int x, int y );
@@ -77,48 +68,62 @@ public:
 	void dragEvent(ofDragInfo dragInfo);
 	void gotMessage(ofMessage msg);
     
+    ///----------------------------------////
+
     bool        m_bDebugMode;
+    float       m_lastTime;
     
+    /// Custom functions
+    void createFullScreenQuad();
+    void setDefaultParameters();
+    
+    void onDiffUValueChanged( float& _value );
+    void onDiffVValueChanged( float& _value );
+    void onFeedValueChanged( float& _value );
+    void onKillValueChanged( float& _value );
+    void onBrushSizeValueChanged( float& _value );
+    void onTimeValueChanged( float& _value );
+
+    /// Shaders and quad mesh
     ofShader    m_grayscottShader;
     ofShader    m_screenShader;
-    
     ofVboMesh   m_fsQuadVbo;
     
+    /// FBOs
     ofFbo       m_fbos[2]; // ping pong fbos
-    
     ofFbo       m_renderFbo; // final render fbo
     ofVec2f     m_renderSize;
-    
+
+    /// GUI
+    ofxPanel          m_gui;
+    bool              m_showGUI;
     Parameters  m_parameters;
-    
    	ofxFloatSlider    m_diffUSlider;
    	ofxFloatSlider    m_diffVSlider;
    	ofxFloatSlider    m_feedSlider;
    	ofxFloatSlider    m_killSlider;
    	ofxFloatSlider    m_brushSizeSlider;
    	ofxFloatSlider    m_timeSlider;
-    
 	ofxFloatColorSlider    m_color1Slider;
 	ofxFloatColorSlider    m_color2Slider;
 	ofxFloatColorSlider    m_color3Slider;
 	ofxFloatColorSlider    m_color4Slider;
 	ofxFloatColorSlider    m_color5Slider;
-    
     ofParameter<float>     m_fps;
-    
-	ofxPanel          m_gui;
-    bool              m_showGUI;
-    
-    float             m_lastTime;
-    
+
+    /// Images
     ofImage           m_starterImage;
     ofImage           m_obstacleImage;
     
-    // Syphon
+    /// Syphon
     bool                m_showSyphon;
     bool                m_useSyphonAsObstacle;
     ofxSyphonClient     m_syphonClient;
     ofFbo               m_syphonFbo;
+    
+    /// OSC
+    ofxOscReceiver      m_oscReceiver;
+    void                updateOSC();
     
     
 };
