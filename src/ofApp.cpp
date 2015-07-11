@@ -225,7 +225,7 @@ void ofApp::draw()
     m_syphonFbo.begin();
         ofClear( 0, 0, 0, 255 );
         ofSetColor( 255, 255, 255, 255 );
-        m_syphonClient.draw( 0, 0 );
+        //m_syphonClient.draw( 0, 0 );
     m_syphonFbo.end();
 
     // Draw GrayScott
@@ -314,7 +314,10 @@ void ofApp::draw()
     
     if(m_showGUI) m_gui.draw();
     
-    if(m_showSyphon) m_syphonClient.draw(0,0);//,m_syphonClient.getWidth()/10.0,m_syphonClient.getHeight()/10.0);
+    if(m_showSyphon)
+    {
+        m_syphonClient.draw(0,0);//,m_syphonClient.getWidth()/10.0,m_syphonClient.getHeight()/10.0);
+    }
 
 }
 
