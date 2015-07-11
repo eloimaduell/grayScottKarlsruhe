@@ -1,11 +1,11 @@
 <group>
-	<FPS>59.8613</FPS>
-	<Diffusion_U>0.0766667</Diffusion_U>
-	<Diffustion_V>0.045</Diffustion_V>
-	<Feed_Rate>0.037</Feed_Rate>
-	<Death_Rate>0.06</Death_Rate>
-	<Brush_Size>5</Brush_Size>
-	<Time_Multiplier>54.4</Time_Multiplier>
+	<FPS>59.2559</FPS>
+	<Diffusion_U>0.0716667</Diffusion_U>
+	<Diffustion_V>0.035</Diffustion_V>
+	<Feed_Rate>0.0323333</Feed_Rate>
+	<Death_Rate>0.0568183</Death_Rate>
+	<Brush_Size>20</Brush_Size>
+	<Time_Multiplier>20</Time_Multiplier>
 	<Color_1>0, 0, 0, 0</Color_1>
 	<Color_2>1, 1, 1, 0.2</Color_2>
 	<Color_3>1, 1, 1, 0.21</Color_3>

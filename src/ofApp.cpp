@@ -104,10 +104,15 @@ void ofApp::setup()
     
     /// Syphon
     ///-------------------------
-    m_showSyphon = false;
+    m_showSyphonObstacle = true;
     m_useSyphonAsObstacle = true;
-    m_syphonClient.setup();
-    m_syphonClient.set("Composition","Arena");
+    m_syphonClientObstacles.setup();
+    m_syphonClientObstacles.set("obstacles","Arena");
+
+    m_showSyphonStarter = true;
+    m_useSyphonAsStarter = false;
+    m_syphonClientStarter.setup();
+    m_syphonClientStarter.set("starter","Arena");
 
     ofFbo::Settings syphonFboSettings;
     syphonFboSettings.width = width;
@@ -122,7 +127,8 @@ void ofApp::setup()
     syphonFboSettings.wrapModeHorizontal = GL_CLAMP_TO_EDGE;
     syphonFboSettings.wrapModeVertical = GL_CLAMP_TO_EDGE;
 
-    m_syphonFbo.allocate( fboSettings );
+    m_syphonFboObstacles.allocate( fboSettings );
+    m_syphonFboStarter.allocate( fboSettings );
     
     /// Final Render FBO
     ///-------------------------
@@ -161,6 +167,33 @@ void ofApp::update()
     m_fps = ofGetFrameRate();
     
     updateOSC();
+  
+    /// Draw Syphons into FBOs
+    /////////////////////////
+
+    if (m_useSyphonAsObstacle)
+    {
+        m_syphonFboObstacles.begin();
+        {
+            ofClear( 0, 0, 0, 255 );
+            ofSetColor( 255, 255, 255, 255 );
+            m_syphonClientObstacles.draw( 0, 0 );
+        }
+        m_syphonFboObstacles.end();
+    }
+    if (true)
+    {
+        // draw syphon into fbo
+        m_syphonFboStarter.begin();
+        {
+            ofClear( 0, 0, 0, 255 );
+            ofSetColor( 255, 255, 255, 255 );
+            m_syphonClientStarter.draw( 0, 0 );
+        }
+        m_syphonFboStarter.end();
+    }
+
+    
  }
 
 //--------------------------------------------------------------
@@ -170,17 +203,7 @@ void ofApp::draw()
     ofClear( 0, 255, 0, 255 );
     ofDisableDepthTest();
     
-    /// Draw into Syphon FBO
-    /////////////////////////
 
-    if (m_useSyphonAsObstacle)
-    {
-        m_syphonFbo.begin();
-        ofClear( 0, 0, 0, 255 );
-        ofSetColor( 255, 255, 255, 255 );
-        m_syphonClient.draw( 0, 0 );
-        m_syphonFbo.end();
-    }
     
     /// Draw GrayScott
     ////////////////////
@@ -209,7 +232,7 @@ void ofApp::draw()
     
         if(true == m_useSyphonAsObstacle)
         {
-            m_grayscottShader.setUniformTexture( "tInfluence", m_syphonFbo.getTexture(),1 );
+            m_grayscottShader.setUniformTexture( "tInfluence", m_syphonFboObstacles.getTexture(),1 );
         }
         else
         {
@@ -257,8 +280,8 @@ void ofApp::draw()
             m_fsQuadVbo.draw();
             m_screenShader.end();
         }
-        ofSetColor(255,255,0);
-        ofDrawEllipse(940, 540, 100, 100);
+        //ofSetColor(255,255,0);
+        //ofDrawEllipse(940, 540, 100, 100);
 
     }
     m_renderFbo.end();
@@ -271,11 +294,24 @@ void ofApp::draw()
     
     if(m_showGUI) m_gui.draw();
     
-    if(m_showSyphon)
+    /// Draw previews and debugs
+    
+    int previewWidth = 200;
+
+    if(m_showSyphonObstacle)
     {
-        m_syphonClient.draw(0,0);//,m_syphonClient.getWidth()/10.0,m_syphonClient.getHeight()/10.0);
+        m_syphonFboObstacles.draw(ofGetWidth()-previewWidth,0,previewWidth,previewWidth/1.7777);//,m_syphonClientObstacles.getWidth()/10.0,m_syphonClientObstacles.getHeight()/10.0);
     }
 
+    if(m_showSyphonStarter)
+    {
+        m_syphonFboStarter.draw(ofGetWidth()-previewWidth,200,previewWidth,previewWidth/1.7777);//,m_syphonClientObstacles.getWidth()/10.0,m_syphonClientObstacles.getHeight()/10.0);
+    }
+
+    m_syphonClientObstacles.draw(ofGetWidth()-previewWidth,400,previewWidth,previewWidth/1.7777);
+    m_syphonClientStarter.draw(ofGetWidth()-previewWidth,600,previewWidth,previewWidth/1.7777);
+    
+    if(ofGetFrameNum()%4==0) drawStarterIntoFbo();
 }
 
 //--------------------------------------------------------------
@@ -296,13 +332,13 @@ void ofApp::setDefaultParameters()
 }
 
 //--------------------------------------------------------------
-void ofApp::keyPressed(int key)
+void ofApp::keyReleased(int key)
 {
 
 }
 
 //--------------------------------------------------------------
-void ofApp::keyReleased(int key)
+void ofApp::keyPressed(int key)
 {
 
     if ( 'd' == key )
@@ -320,28 +356,32 @@ void ofApp::keyReleased(int key)
     }
     else if ( ' ' == key )
     {
-        m_fbos[ 1 ].begin();
-            ofClear( 200, 0, 0, 255 );
-            ofSetColor( 0, 225, 0, 255 );
-        
-            ofEnableBlendMode( OF_BLENDMODE_ADD );
-            m_starterImage.draw( 0, 0, 1920, 1080 );
-        
-            ofDisableBlendMode();
-        m_fbos[ 1 ].end();
+        drawStarterIntoFbo();
     }
     else if (key == 'h')
     {
         m_showGUI = !m_showGUI;
     }
-    else if (key == 's')
+    else if (key == 'O')
     {
-        m_showSyphon = !m_showSyphon;
+        m_showSyphonObstacle = !m_showSyphonObstacle;
     }
-    else if (key == 'u')
+    else if (key == 'S')
+    {
+        m_showSyphonStarter = !m_showSyphonStarter;
+    }
+    else if (key == 'o')
     {
         m_useSyphonAsObstacle = !m_useSyphonAsObstacle;
     }
+
+    else if (key == 's')
+    {
+        m_useSyphonAsStarter = !m_useSyphonAsStarter;
+    }
+
+    
+    
     // 0 save and load
     else if (key == '0')
     {
@@ -543,6 +583,47 @@ void ofApp::updateOSC()
     while(m_oscReceiver.hasWaitingMessages())
     {
         ofxOscMessage* m;
+        m = new ofxOscMessage();
         m_oscReceiver.getNextMessage(m);
+        
+        string address = m->getAddress();
+        cout << "Osc in :: " << address << endl;
+        cout << m->getArgAsFloat(0) << endl;
+        
+        if(address=="/feed")
+        {
+            m_feedSlider = m->getArgAsFloat(0);
+        }
+        else if (address=="/death")
+        {
+            m_killSlider = m->getArgAsFloat(0);
+        }
+        else if (address=="/diffU")
+        {
+            m_diffUSlider = m->getArgAsFloat(0);
+        }
+        else if (address=="/diffV")
+        {
+            m_diffVSlider = m->getArgAsFloat(0);
+        }
+        
     }
+}
+
+//--------------------------------------------------------------
+void ofApp::drawStarterIntoFbo()
+{
+    m_fbos[ 1 ].begin();
+    //ofClear( 200, 0, 0, 255 );
+    ofSetColor( 0, 225, 0, 255 );
+    
+    ofEnableBlendMode( OF_BLENDMODE_ADD );
+    m_syphonFboStarter.draw( 0, 0, 1920, 1080 );
+    //m_starterImage.draw(0,0,1920,1080);
+    
+    ofDisableBlendMode();
+    m_fbos[ 1 ].end();
+    
+    //cout << "drawing starter into FBO" << ofGetElapsedTimef()<< endl;
+
 }

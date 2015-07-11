@@ -84,6 +84,8 @@ public:
     void onBrushSizeValueChanged( float& _value );
     void onTimeValueChanged( float& _value );
 
+    void drawStarterIntoFbo();
+    
     /// Shaders and quad mesh
     ofShader    m_grayscottShader;
     ofShader    m_screenShader;
@@ -116,10 +118,17 @@ public:
     ofImage           m_obstacleImage;
     
     /// Syphon
-    bool                m_showSyphon;
+    bool                m_showSyphonObstacle;
     bool                m_useSyphonAsObstacle;
-    ofxSyphonClient     m_syphonClient;
-    ofFbo               m_syphonFbo;
+    ofxSyphonClient     m_syphonClientObstacles;
+    ofFbo               m_syphonFboObstacles;
+
+    bool                m_showSyphonStarter;
+    bool                m_useSyphonAsStarter;
+    ofxSyphonClient     m_syphonClientStarter;
+    ofFbo               m_syphonFboStarter;
+
+
     
     /// OSC
     ofxOscReceiver      m_oscReceiver;

@@ -1,10 +1,10 @@
 <group>
-	<FPS>59.9589</FPS>
+	<FPS>60.0518</FPS>
 	<Diffusion_U>0.2097</Diffusion_U>
 	<Diffustion_V>0.105</Diffustion_V>
 	<Feed_Rate>0.037</Feed_Rate>
 	<Death_Rate>0.06</Death_Rate>
-	<Brush_Size>5</Brush_Size>
+	<Brush_Size>19.6833</Brush_Size>
 	<Time_Multiplier>20</Time_Multiplier>
 	<Color_1>0, 0, 0, 0</Color_1>
 	<Color_2>1, 1, 1, 0.2</Color_2>
