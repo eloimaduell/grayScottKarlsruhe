@@ -79,10 +79,11 @@ void ofApp::setup()
     m_brushSizeSlider.addListener( this, &ofApp::onBrushSizeValueChanged );
     m_timeSlider.addListener( this, &ofApp::onTimeValueChanged );
     
+    // load images
     m_obstacleImage.load( "K07inv.png" );
     m_starterImage.load( "K07_starter.png" );
     
-    
+    // setup FBOs
     m_fbos[ 0 ].begin();
         ofClear( 255, 0, 0, 255 );
     m_fbos[ 0 ].end();
@@ -216,18 +217,24 @@ void ofApp::update()
 //--------------------------------------------------------------
 void ofApp::draw()
 {
+    // clear to green as grayScott runs in red and green channels
     ofClear( 0, 255, 0, 255 );
-    
     ofDisableDepthTest();
     
-    // Draw into Syphon FBO
-    m_syphonFbo.begin();
+    /// Draw into Syphon FBO
+    /////////////////////////
+
+    if (m_useSyphonAsObstacle)
+    {
+        m_syphonFbo.begin();
         ofClear( 0, 0, 0, 255 );
         ofSetColor( 255, 255, 255, 255 );
-        //m_syphonClient.draw( 0, 0 );
-    m_syphonFbo.end();
-
-    // Draw GrayScott
+        m_syphonClient.draw( 0, 0 );
+        m_syphonFbo.end();
+    }
+    
+    /// Draw GrayScott
+    ////////////////////
     glEnable( GL_CULL_FACE );
     glCullFace( GL_BACK );
  
@@ -274,10 +281,10 @@ void ofApp::draw()
     
     glDisable( GL_CULL_FACE );
     
-    // Final Render
+    /// Final Render
     ////////////////
     
-    m_renderFbo.begin();
+    //m_renderFbo.begin();
     {
         ofClear(255,0,0,255);
         ofSetColor(255);
@@ -301,12 +308,15 @@ void ofApp::draw()
             m_fsQuadVbo.draw();
             m_screenShader.end();
         }
-    }
-    
-    ofSetColor(255,255,0);
-    ofDrawEllipse(940, 540, 100, 100);
+        ofSetColor(255,255,0);
+        ofDrawEllipse(940, 540, 100, 100);
 
-    m_renderFbo.end();
+    }
+    //m_renderFbo.end();
+    
+    
+    /// Draw To Screen
+    ////////////////////
     
     ofSetColor(ofColor::white);
     m_renderFbo.draw(0,0,192,108);
