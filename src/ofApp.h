@@ -81,7 +81,6 @@ public:
     ///----------------------------------////
 
     bool        m_bDebugMode;
-    float       m_lastTime;
     
     /// Custom functions
     void createFullScreenQuad();

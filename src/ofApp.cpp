@@ -1,8 +1,7 @@
 #include "ofApp.h"
 
 ofApp::ofApp()
-  : m_lastTime( 0.0f )
-  , m_bDebugMode( false )
+: m_bDebugMode( false )
 {
 }
 
@@ -66,6 +65,14 @@ void ofApp::setup()
     ofClear( 255, 0, 0, 255 );
     m_fbos[ 1 ].end();
     
+    m_fbos[ 0 ].getTexture().bind( 3 );
+    m_fbos[ 1 ].getTexture().bind( 4 );
+    
+    // we fix screen shader to use texture unit 4 allways to save gl calls as this will not change
+    m_screenShader.begin();
+    m_screenShader.setUniform1i( "tSource", 4);
+    m_screenShader.end();
+    
     
     /// GUI
     ///-------------------------
@@ -123,7 +130,7 @@ void ofApp::setup()
     renderFboSettings.height = height;
     renderFboSettings.internalformat = GL_RGBA;
     renderFboSettings.numSamples = 1;
-    renderFboSettings.useDepth = true;
+    renderFboSettings.useDepth = false;
     renderFboSettings.useStencil = false;
     renderFboSettings.textureTarget = GL_TEXTURE_2D;
     renderFboSettings.minFilter = GL_LINEAR;
@@ -131,7 +138,7 @@ void ofApp::setup()
     renderFboSettings.wrapModeHorizontal = GL_CLAMP_TO_EDGE;
     renderFboSettings.wrapModeVertical = GL_CLAMP_TO_EDGE;
     
-    m_renderFbo.allocate( width, height ); //renderFboSettings);
+    m_renderFbo.allocate( renderFboSettings );
     
     
     ofFbo::Settings syphonFboSettings;
@@ -205,18 +212,8 @@ void ofApp::runSimulation()
  
     ofDisableDepthTest();
     ofEnableAlphaBlending();
-
-    float currTime = ofGetElapsedTimef();
-    float dt = ( currTime - m_lastTime ) * m_parameters.timeMultiplier;
     
-    if ( dt > 1.01f || dt <= 0.0f )
-    {
-        dt = 1.01f;
-    }
-    
-    dt = m_parameters.timeMultiplier / 60.0f * 1.01f;
-    
-    m_lastTime = currTime;
+    float dt = m_parameters.timeMultiplier / 60.0f * 1.01f;
     
     m_grayscottShader.begin();
         m_grayscottShader.setUniform1f( "diffU", m_parameters.diffU );
@@ -237,7 +234,7 @@ void ofApp::runSimulation()
         for ( int i = 0; i < 8; ++ i )
         {
             fboIndex = i % 2;
-            m_grayscottShader.setUniformTexture( "tSource", m_fbos[ 1 - fboIndex ].getTexture(), 0 );
+            m_grayscottShader.setUniformTexture( "tSource", m_fbos[ 1 - fboIndex ].getTexture(), 2 );
             
             m_fbos[ fboIndex ].begin();
                 ofClear( 255, 0, 0, 255 );
@@ -263,7 +260,7 @@ void ofApp::draw()
     
     /// Final Render
     ////////////////
-    m_fbos[ 1 ].getTexture().bind( 3 );
+    
     
     m_renderFbo.begin();
     {
@@ -281,7 +278,7 @@ void ofApp::draw()
             m_screenShader.setUniform4f( "color3", m_parameters.color3.r, m_parameters.color3.g, m_parameters.color3.b, m_parameters.color3.a );
             m_screenShader.setUniform4f( "color4", m_parameters.color4.r, m_parameters.color4.g, m_parameters.color4.b, m_parameters.color4.a );
             m_screenShader.setUniform4f( "color5", m_parameters.color5.r, m_parameters.color5.g, m_parameters.color5.b, m_parameters.color5.a );
-            m_screenShader.setUniform1i( "tSource", 3 );
+            
             
             m_fsQuadVbo.draw();
             m_screenShader.end();
@@ -318,7 +315,8 @@ void ofApp::draw()
     m_syphonClientObstacles.draw(ofGetWidth()-previewWidth,400,previewWidth,previewWidth/1.7777);
     m_syphonClientStarter.draw(ofGetWidth()-previewWidth,600,previewWidth,previewWidth/1.7777);
     
-    if(ofGetFrameNum()%4==0) drawStarterIntoFbo();
+    //if(ofGetFrameNum()%4==0) drawStarterIntoFbo();
+    drawStarterIntoFbo();
 }
 
 //--------------------------------------------------------------
@@ -622,7 +620,7 @@ void ofApp::drawStarterIntoFbo()
 {
     m_fbos[ 1 ].begin();
     //ofClear( 200, 0, 0, 255 );
-    ofSetColor( 0, 225, 0, 255 );
+    ofSetColor( 255, 225, 255, 255 );
     
     ofEnableBlendMode( OF_BLENDMODE_ADD );
     m_syphonFboStarter.draw( 0, 0, 1920, 1080 );
