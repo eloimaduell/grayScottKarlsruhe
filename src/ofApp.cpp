@@ -9,6 +9,8 @@ ofApp::ofApp()
 //--------------------------------------------------------------
 void ofApp::setup()
 {
+    LB_CHECK_GL_ERROR();
+    
     // Use GL_TEXTURE_2D Textures (normalized texture coordinates 0..1)
     ofDisableArbTex();
     
@@ -63,7 +65,7 @@ void ofApp::setup()
     m_fbos[ 1 ].begin();
     ofClear( 255, 0, 0, 255 );
     m_fbos[ 1 ].end();
-
+    
     
     /// GUI
     ///-------------------------
@@ -114,6 +116,24 @@ void ofApp::setup()
     m_syphonClientStarter.setup();
     m_syphonClientStarter.set("starter","Arena");
 
+    /// Final Render FBO
+    ///-------------------------
+    ofFbo::Settings renderFboSettings;
+    renderFboSettings.width = width;
+    renderFboSettings.height = height;
+    renderFboSettings.internalformat = GL_RGBA;
+    renderFboSettings.numSamples = 1;
+    renderFboSettings.useDepth = true;
+    renderFboSettings.useStencil = false;
+    renderFboSettings.textureTarget = GL_TEXTURE_2D;
+    renderFboSettings.minFilter = GL_LINEAR;
+    renderFboSettings.maxFilter = GL_LINEAR;
+    renderFboSettings.wrapModeHorizontal = GL_CLAMP_TO_EDGE;
+    renderFboSettings.wrapModeVertical = GL_CLAMP_TO_EDGE;
+    
+    m_renderFbo.allocate( width, height ); //renderFboSettings);
+    
+    
     ofFbo::Settings syphonFboSettings;
     syphonFboSettings.width = width;
     syphonFboSettings.height = height;
@@ -130,28 +150,9 @@ void ofApp::setup()
     m_syphonFboObstacles.allocate( fboSettings );
     m_syphonFboStarter.allocate( fboSettings );
     
-    /// Final Render FBO
-    ///-------------------------
-    ofFbo::Settings renderFboSettings;
-    renderFboSettings.width = width;
-    renderFboSettings.height = height;
-    renderFboSettings.internalformat = GL_RGBA;
-    renderFboSettings.numSamples = 1;
-    renderFboSettings.useDepth = false;
-    renderFboSettings.useStencil = false;
-    renderFboSettings.textureTarget = GL_TEXTURE_2D;
-    renderFboSettings.minFilter = GL_LINEAR;
-    renderFboSettings.maxFilter = GL_LINEAR;
-    renderFboSettings.wrapModeHorizontal = GL_CLAMP_TO_EDGE;
-    renderFboSettings.wrapModeVertical = GL_CLAMP_TO_EDGE;
-    
-    m_renderFbo.allocate(renderFboSettings);
-    
-    
     /// OSC Receiver
     ///-----------------
     m_oscReceiver.setup(12345);
-    
 }
 
 
@@ -181,6 +182,7 @@ void ofApp::update()
         }
         m_syphonFboObstacles.end();
     }
+    
     if (true)
     {
         // draw syphon into fbo
@@ -192,8 +194,6 @@ void ofApp::update()
         }
         m_syphonFboStarter.end();
     }
-
-    
  }
 
 //--------------------------------------------------------------
@@ -202,7 +202,6 @@ void ofApp::draw()
     // clear to green as grayScott runs in red and green channels
     ofClear( 0, 255, 0, 255 );
     ofDisableDepthTest();
-    
 
     
     /// Draw GrayScott
@@ -251,16 +250,14 @@ void ofApp::draw()
         }
     m_grayscottShader.end();
     
-    glDisable( GL_CULL_FACE );
     
     /// Final Render
     ////////////////
+    m_fbos[ fboIndex ].getTexture().bind( 3 );
     
     m_renderFbo.begin();
     {
         ofClear(255,0,0,255);
-        ofSetColor(255);
-        ofDrawEllipse(940, 540, 200, 200);
 
         if ( true == m_bDebugMode )
         {
@@ -274,24 +271,24 @@ void ofApp::draw()
             m_screenShader.setUniform4f( "color3", m_parameters.color3.r, m_parameters.color3.g, m_parameters.color3.b, m_parameters.color3.a );
             m_screenShader.setUniform4f( "color4", m_parameters.color4.r, m_parameters.color4.g, m_parameters.color4.b, m_parameters.color4.a );
             m_screenShader.setUniform4f( "color5", m_parameters.color5.r, m_parameters.color5.g, m_parameters.color5.b, m_parameters.color5.a );
-            
-            m_screenShader.setUniformTexture( "tSource", m_fbos[ fboIndex ].getTexture(), 0 );
+            m_screenShader.setUniform1i( "tSource", 3 );
             
             m_fsQuadVbo.draw();
             m_screenShader.end();
         }
-        //ofSetColor(255,255,0);
-        //ofDrawEllipse(940, 540, 100, 100);
-
     }
     m_renderFbo.end();
     
+    glDisable( GL_CULL_FACE );
+
+   
     /// Draw To Screen
     ////////////////////
     
     ofSetColor(ofColor::white);
+    m_renderFbo.draw(0,0);
     m_renderFbo.draw(0,0,192,108);
-    
+
     if(m_showGUI) m_gui.draw();
     
     /// Draw previews and debugs

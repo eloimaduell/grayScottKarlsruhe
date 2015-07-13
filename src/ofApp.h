@@ -6,6 +6,16 @@
 #include "ofxSyphon.h"
 #include "ofxOsc.h"
 
+#define LOG(args...) fprintf( stderr , ## args)
+
+#define LB_CHECK_GL_ERROR()                                               \
+{                                                                         \
+  GLenum err;                                                             \
+  while ((err = glGetError()) != GL_NO_ERROR) {                           \
+  LOG( "OpenGL Error: %u at %s : %u - %s()", err, __FILE__, __LINE__, __FUNCTION__ ); \
+  };                                                                      \
+}
+
 /*
 // TO DO
  

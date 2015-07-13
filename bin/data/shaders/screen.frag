@@ -5,9 +5,6 @@ in struct VertexOutput
     vec2 uv; 
 } vertex_out;
 
-uniform float screenWidth;
-uniform float screenHeight;
-
 uniform sampler2D tSource;
 
 uniform vec4 color1;
@@ -21,9 +18,8 @@ out vec4 out_color;
 void main()
 {
     vec2 uv = vertex_out.uv;
-    uv.y = 1.0 - uv.y;
     
-    float value = texture(tSource, uv).g;
+    float value = texture( tSource, uv ).g;
 
     float a;
     vec3 col;
