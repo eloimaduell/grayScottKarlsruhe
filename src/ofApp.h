@@ -96,6 +96,8 @@ public:
 
     void drawStarterIntoFbo();
     
+    void runSimulation();
+    
     /// Shaders and quad mesh
     ofShader    m_grayscottShader;
     ofShader    m_screenShader;

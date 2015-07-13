@@ -194,16 +194,10 @@ void ofApp::update()
         }
         m_syphonFboStarter.end();
     }
- }
+}
 
-//--------------------------------------------------------------
-void ofApp::draw()
+void ofApp::runSimulation()
 {
-    // clear to green as grayScott runs in red and green channels
-    ofClear( 0, 255, 0, 255 );
-    ofDisableDepthTest();
-
-    
     /// Draw GrayScott
     ////////////////////
     glEnable( GL_CULL_FACE );
@@ -219,6 +213,8 @@ void ofApp::draw()
     {
         dt = 1.01f;
     }
+    
+    dt = m_parameters.timeMultiplier / 60.0f * 1.01f;
     
     m_lastTime = currTime;
     
@@ -249,11 +245,25 @@ void ofApp::draw()
             m_fbos[ fboIndex ].end();
         }
     m_grayscottShader.end();
+}
+
+//--------------------------------------------------------------
+void ofApp::draw()
+{
+    // clear to green as grayScott runs in red and green channels
+    ofClear( 0, 255, 0, 255 );
+    ofDisableDepthTest();
+
+    int numSimulations = 2;
     
+    for ( int i = 0; i < numSimulations; ++i )
+    {
+        runSimulation();
+    }
     
     /// Final Render
     ////////////////
-    m_fbos[ fboIndex ].getTexture().bind( 3 );
+    m_fbos[ 1 ].getTexture().bind( 3 );
     
     m_renderFbo.begin();
     {
