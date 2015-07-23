@@ -80,7 +80,12 @@ public:
     
     ///----------------------------------////
 
-    bool        m_bDebugMode;
+    bool                m_bDebugMode;
+    ofVec2f             m_renderResolution;
+    bool                m_saveAnimation;
+    string              m_folderName;
+    int                 m_currentAnimationLength;
+    int                 m_maxAnimationLength;
     
     /// Custom functions
     void createFullScreenQuad();
@@ -127,6 +132,14 @@ public:
     /// Images
     ofImage           m_starterImage;
     ofImage           m_obstacleImage;
+    ofImage           m_starterImageSequence;
+    
+    /// png starter
+    int                 m_currentFrameNumSequence;
+    int                 m_totalFrameNumSequence;
+    bool                m_useImageSequenceAsStarter;
+    string              m_sequenceFolder;
+    ofParameter<int>  m_sequenceOpacity;
     
     /// Syphon
     bool                m_showSyphonObstacle;
@@ -144,6 +157,8 @@ public:
     /// OSC
     ofxOscReceiver      m_oscReceiver;
     void                updateOSC();
+    
+    
     
     
 };

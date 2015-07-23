@@ -8,7 +8,13 @@ ofApp::ofApp()
 //--------------------------------------------------------------
 void ofApp::setup()
 {
+    
+    
     LB_CHECK_GL_ERROR();
+    
+    GLint result = 0;
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &result);
+    cout << result << endl;
     
     // Use GL_TEXTURE_2D Textures (normalized texture coordinates 0..1)
     ofDisableArbTex();
@@ -16,8 +22,24 @@ void ofApp::setup()
     /// Shaders and quad mesh
     ///-------------------------
     // change the 4 to 2 or 1 (or 8) to adjust the scale
-    int width = ofGetWindowWidth();
-    int height = ofGetWindowHeight();
+//    int width = ofGetWindowWidth();
+//    int height = ofGetWindowHeight();
+
+    /// Image sequence stuff
+    //ofImage           m_starterImageSequence;
+    m_currentFrameNumSequence = 0;
+    m_totalFrameNumSequence = 602;
+    m_sequenceFolder="./starterVideo/scan2/scan_";
+    m_useImageSequenceAsStarter = false;
+    m_sequenceOpacity = 255;
+
+    
+    m_saveAnimation = false;
+    m_currentAnimationLength = 0;
+    m_maxAnimationLength = 64000;
+
+    
+    m_renderResolution = ofVec2f(10800,1080);
 
     setDefaultParameters();
     createFullScreenQuad();
@@ -27,23 +49,23 @@ void ofApp::setup()
 
     
     m_grayscottShader.begin();
-    m_grayscottShader.setUniform1f( "screenWidth", width );
-    m_grayscottShader.setUniform1f( "screenHeight", height );
+    m_grayscottShader.setUniform1f( "screenWidth", m_renderResolution.x );
+    m_grayscottShader.setUniform1f( "screenHeight", m_renderResolution.y );
     m_grayscottShader.end();
     
     m_screenShader.begin();
-    m_screenShader.setUniform1f( "screenWidth", width );
-    m_screenShader.setUniform1f( "screenHeight", height );
+    m_screenShader.setUniform1f( "screenWidth", m_renderResolution.x );
+    m_screenShader.setUniform1f( "screenHeight", m_renderResolution.y );
     m_screenShader.end();
   
     /// Shader FBOs
     ///-------------------------
     
     ofFbo::Settings fboSettings;
-    fboSettings.width = width;
-    fboSettings.height = height;
-    fboSettings.internalformat = GL_RGB32F;
-    fboSettings.numSamples = 4;
+    fboSettings.width = m_renderResolution.x;
+    fboSettings.height = m_renderResolution.y;
+    fboSettings.internalformat = GL_RGBA32F;
+    fboSettings.numSamples = 2;
     fboSettings.useDepth = false;
     fboSettings.useStencil = false;
     fboSettings.textureTarget = GL_TEXTURE_2D;
@@ -83,8 +105,9 @@ void ofApp::setup()
     m_gui.add( m_diffVSlider.setup( "Diffustion V", m_parameters.diffV, 0.0f, 1.0f ) );
     m_gui.add( m_feedSlider.setup( "Feed Rate", m_parameters.feed, 0.0f, 0.1f ) );
 	m_gui.add( m_killSlider.setup( "Death Rate", m_parameters.kill, 0.0f, 0.073f ) );
-    m_gui.add( m_brushSizeSlider.setup( "Brush Size", m_parameters.brushSize, 1.0f, 20.0f ) );
+    m_gui.add( m_brushSizeSlider.setup( "Brush Size", m_parameters.brushSize, 1.0f, 220.0f ) );
     m_gui.add( m_timeSlider.setup( "Time Multiplier", m_parameters.timeMultiplier, 0.0f, 60.0 ) );
+    m_gui.add( m_sequenceOpacity.set("starter PNG sequence Opacity",m_sequenceOpacity,0,255));
     
     m_gui.add( m_color1Slider.setup( "Color 1", m_parameters.color1, ofFloatColor( 0.0f, 0.0f, 0.0f, 0.0f ), ofFloatColor( 1.0f, 1.0f, 1.0f, 1.0f ) ) );
     m_gui.add( m_color2Slider.setup( "Color 2", m_parameters.color2, ofFloatColor( 0.0f, 0.0f, 0.0f, 0.0f ), ofFloatColor( 1.0f, 1.0f, 1.0f, 1.0f ) ) );
@@ -123,11 +146,36 @@ void ofApp::setup()
     m_syphonClientStarter.setup();
     m_syphonClientStarter.set("starter","Arena");
 
+    ofFbo::Settings syphonFboSettings;
+    syphonFboSettings.width = m_renderResolution.x;
+    syphonFboSettings.height = m_renderResolution.y;
+    syphonFboSettings.internalformat = GL_RGBA;
+    syphonFboSettings.numSamples = 1;
+    syphonFboSettings.useDepth = false;
+    syphonFboSettings.useStencil = false;
+    syphonFboSettings.textureTarget = GL_TEXTURE_2D;
+    syphonFboSettings.minFilter = GL_LINEAR;
+    syphonFboSettings.maxFilter = GL_LINEAR;
+    syphonFboSettings.wrapModeHorizontal = GL_CLAMP_TO_EDGE;
+    syphonFboSettings.wrapModeVertical = GL_CLAMP_TO_EDGE;
+    
+    m_syphonFboObstacles.allocate( syphonFboSettings );
+    m_syphonFboStarter.allocate( syphonFboSettings );
+    
+    m_syphonFboObstacles.begin();
+    ofClear(0, 0, 0, 0);
+    m_syphonFboObstacles.end();
+    
+    m_syphonFboStarter.begin();
+    ofClear(0,0,0,0);
+    m_syphonFboStarter.end();
+    
+
     /// Final Render FBO
     ///-------------------------
     ofFbo::Settings renderFboSettings;
-    renderFboSettings.width = width;
-    renderFboSettings.height = height;
+    renderFboSettings.width = m_renderResolution.x;
+    renderFboSettings.height = m_renderResolution.y;
     renderFboSettings.internalformat = GL_RGBA;
     renderFboSettings.numSamples = 1;
     renderFboSettings.useDepth = false;
@@ -139,23 +187,6 @@ void ofApp::setup()
     renderFboSettings.wrapModeVertical = GL_CLAMP_TO_EDGE;
     
     m_renderFbo.allocate( renderFboSettings );
-    
-    
-    ofFbo::Settings syphonFboSettings;
-    syphonFboSettings.width = width;
-    syphonFboSettings.height = height;
-    syphonFboSettings.internalformat = GL_RGBA;
-    syphonFboSettings.numSamples = 1;
-    syphonFboSettings.useDepth = false;
-    syphonFboSettings.useStencil = false;
-    syphonFboSettings.textureTarget = GL_TEXTURE_2D;
-    syphonFboSettings.minFilter = GL_LINEAR;
-    syphonFboSettings.maxFilter = GL_LINEAR;
-    syphonFboSettings.wrapModeHorizontal = GL_CLAMP_TO_EDGE;
-    syphonFboSettings.wrapModeVertical = GL_CLAMP_TO_EDGE;
-
-    m_syphonFboObstacles.allocate( fboSettings );
-    m_syphonFboStarter.allocate( fboSettings );
     
     /// OSC Receiver
     ///-----------------
@@ -183,9 +214,9 @@ void ofApp::update()
     {
         m_syphonFboObstacles.begin();
         {
-            ofClear( 0, 0, 0, 255 );
+            ofClear( 0, 0, 0, 0 );
             ofSetColor( 255, 255, 255, 255 );
-            m_syphonClientObstacles.draw( 0, 0 );
+            m_syphonClientObstacles.draw( 0, 0,m_renderResolution.x,m_renderResolution.y );
         }
         m_syphonFboObstacles.end();
     }
@@ -195,9 +226,27 @@ void ofApp::update()
         // draw syphon into fbo
         m_syphonFboStarter.begin();
         {
-            ofClear( 0, 0, 0, 255 );
+            ofClear( 0, 0, 0, 0 );
             ofSetColor( 255, 255, 255, 255 );
-            m_syphonClientStarter.draw( 0, 0 );
+            if(m_useSyphonAsStarter)
+            {
+                m_syphonClientStarter.draw( 0, 0 ,m_renderResolution.x,m_renderResolution.y);
+            }
+            else if(m_useImageSequenceAsStarter)
+            {
+                m_starterImageSequence.load(m_sequenceFolder + ofToString(m_currentFrameNumSequence) +".png");
+                ofSetColor(255,0,0,m_sequenceOpacity);
+                m_starterImageSequence.draw( 0, 0 ,m_renderResolution.x,m_renderResolution.y);
+                
+                cout << "num sequence PNGs : " <<m_currentFrameNumSequence << endl;
+
+                // update frame number
+                m_currentFrameNumSequence = m_currentFrameNumSequence + 1;
+                if(m_currentFrameNumSequence > m_totalFrameNumSequence)
+                {
+                    m_currentFrameNumSequence=0;
+                }
+            }
         }
         m_syphonFboStarter.end();
     }
@@ -242,6 +291,8 @@ void ofApp::runSimulation()
             m_fbos[ fboIndex ].end();
         }
     m_grayscottShader.end();
+    
+
 }
 
 //--------------------------------------------------------------
@@ -291,32 +342,62 @@ void ofApp::draw()
    
     /// Draw To Screen
     ////////////////////
-    
+    float aspectRatio = m_renderResolution.x /m_renderResolution.y;
     ofSetColor(ofColor::white);
-    m_renderFbo.draw(0,0);
-    m_renderFbo.draw(0,0,192,108);
+    m_renderFbo.draw(0,0,ofGetWidth(),ofGetWidth()/aspectRatio);
 
     if(m_showGUI) m_gui.draw();
     
     /// Draw previews and debugs
     
     int previewWidth = 200;
-
+    
     if(m_showSyphonObstacle)
     {
-        m_syphonFboObstacles.draw(ofGetWidth()-previewWidth,0,previewWidth,previewWidth/1.7777);//,m_syphonClientObstacles.getWidth()/10.0,m_syphonClientObstacles.getHeight()/10.0);
+        m_syphonFboObstacles.draw(ofGetWidth()-previewWidth,0,previewWidth,previewWidth/aspectRatio);//,m_syphonClientObstacles.getWidth()/10.0,m_syphonClientObstacles.getHeight()/10.0);
+        ofSetColor(255);
+        ofDrawBitmapString("obstacles fbo", ofGetWidth()-previewWidth, previewWidth/aspectRatio+20+200);
     }
 
     if(m_showSyphonStarter)
     {
-        m_syphonFboStarter.draw(ofGetWidth()-previewWidth,200,previewWidth,previewWidth/1.7777);//,m_syphonClientObstacles.getWidth()/10.0,m_syphonClientObstacles.getHeight()/10.0);
+        m_syphonFboStarter.draw(ofGetWidth()-previewWidth,200,previewWidth,previewWidth/aspectRatio);//,m_syphonClientObstacles.getWidth()/10.0,m_syphonClientObstacles.getHeight()/10.0);
+        ofSetColor(255);
+        ofDrawBitmapString("starter fbo", ofGetWidth()-previewWidth, previewWidth/aspectRatio+20 );
     }
 
-    m_syphonClientObstacles.draw(ofGetWidth()-previewWidth,400,previewWidth,previewWidth/1.7777);
-    m_syphonClientStarter.draw(ofGetWidth()-previewWidth,600,previewWidth,previewWidth/1.7777);
+    /// Draw Previews
+    ///////////////////
     
-    //if(ofGetFrameNum()%4==0) drawStarterIntoFbo();
-    drawStarterIntoFbo();
+    m_syphonClientObstacles.draw(ofGetWidth()-previewWidth,400,previewWidth,previewWidth/aspectRatio);
+    ofDrawBitmapString("obstacles syphon", ofGetWidth()-previewWidth, previewWidth/aspectRatio+20 + 400);
+    m_syphonClientStarter.draw(ofGetWidth()-previewWidth,600,previewWidth,previewWidth/aspectRatio);
+    ofDrawBitmapString("starter syphon", ofGetWidth()-previewWidth, previewWidth/10+20 + 600);
+    if(m_useImageSequenceAsStarter)
+    {
+        m_starterImageSequence.draw(ofGetWidth()-previewWidth, previewWidth/10+20 + 800,previewWidth,previewWidth/10);
+        ofDrawBitmapString("starter PNG", ofGetWidth()-previewWidth, previewWidth/10+20 + 800);
+    }
+    if(ofGetFrameNum()%1==0) drawStarterIntoFbo();
+    //drawStarterIntoFbo();
+    
+    /// SAVE TO DISK
+    ////////////////
+    if ((m_saveAnimation)&&(m_currentAnimationLength<m_maxAnimationLength))
+    {
+        ofImage image;
+        //image.allocate(m_renderResolution.x, m_renderResolution.y, OF_IMAGE_COLOR);
+        ofPixels pixels;
+        m_renderFbo.readToPixels(pixels);
+        image.setFromPixels(pixels);
+        image.save("./" + m_folderName + "/" + ofToString(ofGetFrameNum()) + ".png");
+        cout << "saving frame : " << ofGetFrameNum() << " : " << "./" << m_folderName << "/" << ofToString(ofGetFrameNum()) << ".png" << endl;
+        m_currentAnimationLength = m_currentAnimationLength +1;
+
+    }
+
+    ofSetColor(255);
+    ofDrawCircle(ofGetWidth()/2, ofGetHeight(), 20);
 }
 
 //--------------------------------------------------------------
@@ -346,6 +427,7 @@ void ofApp::keyReleased(int key)
 void ofApp::keyPressed(int key)
 {
 
+    cout << char(key) << endl;
     if ( 'd' == key )
     {
         m_bDebugMode = !m_bDebugMode;
@@ -384,7 +466,33 @@ void ofApp::keyPressed(int key)
     {
         m_useSyphonAsStarter = !m_useSyphonAsStarter;
     }
+    else if (key == 'z')
+    {
+        ofImage image;
+        //image.allocate(m_renderResolution.x, m_renderResolution.y, OF_IMAGE_COLOR);
+        
+        ofPixels pixels;
+        m_renderFbo.readToPixels(pixels);
+        image.setFromPixels(pixels);
+        image.save(ofGetTimestampString() + ".png");
 
+    }
+    else if(key=='x')
+    {
+        m_saveAnimation = !m_saveAnimation;
+        
+        if(m_saveAnimation)
+        {
+            m_folderName = ofToString(ofGetTimestampString());
+            ofDirectory dir;
+            dir.createDirectory(m_folderName);
+            m_currentAnimationLength = 0;
+        }
+    }
+    else if(key=='t')
+    {
+        m_useImageSequenceAsStarter = !m_useImageSequenceAsStarter;
+    }
     
     
     // 0 save and load
@@ -392,43 +500,55 @@ void ofApp::keyPressed(int key)
     {
         m_gui.loadFromFile("settings.xml");
     }
-    else if (key == '=')
+    else if (key == 'p')
     {
         m_gui.saveToFile("settings.xml");
     }
     // 1 save and load
     //------------------
-    else if (key == '1')
+    else if (key == 'q')
     {
             m_gui.loadFromFile("settings1.xml");
     }
-    else if (key == '!')
+    else if (key == 'Q')
     {
         m_gui.saveToFile("settings1.xml");
     }
 
     // 2 save and load
     //------------------
-    else if (key == '2')
+    else if (key == 'w')
     {
         m_gui.loadFromFile("settings2.xml");
     }
-    else if (key == '"')
+    else if (key == 'W')
     {
         m_gui.saveToFile("settings2.xml");
     }
 
     // 3 save and load
     //------------------
-    else if (key == '3')
+    else if (key == 'e')
     {
         m_gui.loadFromFile("settings3.xml");
     }
-    else if (key == 'á')
+    else if ((key == 'E'))
     {
         m_gui.saveToFile("settings3.xml");
+        cout << "saved 3 !! " << endl;
+    }
+    // 4 save and load
+    //------------------
+    else if (key == 'r')
+    {
+        m_gui.loadFromFile("settings4.xml");
+    }
+    else if (key == 'R')
+    {
+        m_gui.saveToFile("settings4.xml");
     }
 
+    
 }
 
 //--------------------------------------------------------------
@@ -439,8 +559,6 @@ void ofApp::mouseMoved(int x, int y )
 //--------------------------------------------------------------
 void ofApp::mouseDragged(int x, int y, int button)
 {
-    m_parameters.brush.set( x, y );
-    
     m_fbos[ 1 ].begin();
     
         if ( 0 == button )
@@ -452,15 +570,16 @@ void ofApp::mouseDragged(int x, int y, int button)
             ofSetColor( 255, 0, 0, 255 );
         }
     
-        ofDrawCircle( m_parameters.brush.x, m_parameters.brush.y, m_parameters.brushSize );
+    float mX = float(x) / float(ofGetWidth());
+    float mY = float(y) / float(ofGetHeight());
+    ofDrawCircle( mX * m_renderResolution.x, mY * m_renderResolution.y, m_parameters.brushSize );
+
     m_fbos[ 1 ].end();
 }
 
 //--------------------------------------------------------------
 void ofApp::mousePressed(int x, int y, int button)
 {
-    m_parameters.brush.set( x, y );
-    
     m_fbos[ 1 ].begin();
     
         if ( 0 == button )
@@ -472,7 +591,9 @@ void ofApp::mousePressed(int x, int y, int button)
             ofSetColor( 255, 0, 0, 255 );
         }
     
-        ofDrawCircle( m_parameters.brush.x, m_parameters.brush.y, m_parameters.brushSize );
+    float mX = float(x) / float(ofGetWidth());
+    float mY = float(y) / float(ofGetHeight());
+    ofDrawCircle( mX * m_renderResolution.x, mY * m_renderResolution.y, m_parameters.brushSize );
     m_fbos[ 1 ].end();
 }
 
@@ -619,14 +740,15 @@ void ofApp::updateOSC()
 void ofApp::drawStarterIntoFbo()
 {
     m_fbos[ 1 ].begin();
-    //ofClear( 200, 0, 0, 255 );
-    ofSetColor( 255, 225, 255, 255 );
+
+    ofSetColor( 255, 255, 255, 255 );
     
-    ofEnableBlendMode( OF_BLENDMODE_ADD );
-    m_syphonFboStarter.draw( 0, 0, 1920, 1080 );
+    //ofEnableBlendMode( OF_BLENDMODE_ADD );
+    ofEnableAlphaBlending();
+    m_syphonFboStarter.draw( 0, 0, m_renderResolution.x, m_renderResolution.y );
     //m_starterImage.draw(0,0,1920,1080);
     
-    ofDisableBlendMode();
+   // ofDisableBlendMode();
     m_fbos[ 1 ].end();
     
     //cout << "drawing starter into FBO" << ofGetElapsedTimef()<< endl;
